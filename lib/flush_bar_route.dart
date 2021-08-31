@@ -1,15 +1,12 @@
-import 'dart:async';
-import 'dart:ui';
+part of 'flush_bar.dart';
 
-import 'flushbar.dart';
-import 'package:flutter/material.dart';
-import 'package:flutter/scheduler.dart';
+class FlushBarRoute<T> extends OverlayRoute<T> {
+  static const String flushBarRouteName = '/flushbarRoute';
 
-class FlushbarRoute<T> extends OverlayRoute<T> {
-  final Flushbar flushbar;
+  final FlushBar flushBar;
   final Builder _builder;
   final Completer<T> _transitionCompleter = Completer<T>();
-  final FlushbarStatusCallback? _onStatusChanged;
+  // final FlushBarStatusCallback? _onStatusChanged;
 
   Animation<double>? _filterBlurAnimation;
   Animation<Color?>? _filterColorAnimation;
@@ -18,40 +15,38 @@ class FlushbarRoute<T> extends OverlayRoute<T> {
   bool _wasDismissedBySwipe = false;
   Timer? _timer;
   T? _result;
-  FlushbarStatus? currentStatus;
+  FlushBarStatus? currentStatus;
 
-  FlushbarRoute({
-    required this.flushbar,
+  FlushBarRoute({
+    required this.flushBar,
     RouteSettings? settings,
-  })  : _builder = Builder(builder: (BuildContext innerContext) {
-          return GestureDetector(
-            onTap:
-                flushbar.onTap != null ? () => flushbar.onTap!(flushbar) : null,
-            child: flushbar,
-          );
-        }),
-        _onStatusChanged = flushbar.onStatusChanged,
+  })  : _builder = Builder(
+          builder: (BuildContext innerContext) {
+            return GestureDetector(
+              onTap: flushBar.onTap != null ? () => flushBar.onTap!(flushBar) : null,
+              child: flushBar,
+            );
+          },
+        ),
         super(settings: settings) {
-    _configureAlignment(flushbar.flushbarPosition);
+    _configureAlignment(flushBar.flushBarPosition);
   }
 
-  void _configureAlignment(FlushbarPosition flushbarPosition) {
-    switch (flushbar.flushbarPosition) {
-      case FlushbarPosition.TOP:
+  void _configureAlignment(FlushBarPosition flushbarPosition) {
+    switch (flushBar.flushBarPosition) {
+      case FlushBarPosition.top:
         {
           _initialAlignment = Alignment(-1.0, -2.0);
-          _endAlignment = flushbar.endOffset != null
-              ? Alignment(-1.0, -1.0) +
-                  Alignment(flushbar.endOffset!.dx, flushbar.endOffset!.dy)
+          _endAlignment = flushBar.endOffset != null
+              ? Alignment(-1.0, -1.0) + Alignment(flushBar.endOffset!.dx, flushBar.endOffset!.dy)
               : Alignment(-1.0, -1.0);
           break;
         }
-      case FlushbarPosition.BOTTOM:
+      case FlushBarPosition.bottom:
         {
           _initialAlignment = Alignment(-1.0, 2.0);
-          _endAlignment = flushbar.endOffset != null
-              ? Alignment(-1.0, 1.0) +
-                  Alignment(flushbar.endOffset!.dx, flushbar.endOffset!.dy)
+          _endAlignment = flushBar.endOffset != null
+              ? Alignment(-1.0, 1.0) + Alignment(flushBar.endOffset!.dx, flushBar.endOffset!.dy)
               : Alignment(-1.0, 1.0);
           break;
         }
@@ -59,11 +54,12 @@ class FlushbarRoute<T> extends OverlayRoute<T> {
   }
 
   Future<T> get completed => _transitionCompleter.future;
+
   bool get opaque => false;
 
   @override
   Future<RoutePopDisposition> willPop() {
-    if (!flushbar.isDismissible) {
+    if (!flushBar.isDismissible) {
       return Future.value(RoutePopDisposition.doNotPop);
     }
 
@@ -74,12 +70,12 @@ class FlushbarRoute<T> extends OverlayRoute<T> {
   Iterable<OverlayEntry> createOverlayEntries() {
     final overlays = <OverlayEntry>[];
 
-    if (flushbar.blockBackgroundInteraction) {
+    if (flushBar.blockBackgroundInteraction) {
       overlays.add(
         OverlayEntry(
             builder: (BuildContext context) {
               return GestureDetector(
-                onTap: flushbar.isDismissible ? () => flushbar.dismiss() : null,
+                onTap: flushBar.isDismissible ? () => flushBar.dismiss() : null,
                 child: _createBackgroundOverlay(),
               );
             },
@@ -97,9 +93,7 @@ class FlushbarRoute<T> extends OverlayRoute<T> {
               explicitChildNodes: true,
               child: AlignTransition(
                 alignment: _animation!,
-                child: flushbar.isDismissible
-                    ? _getDismissibleFlushbar(_builder)
-                    : _getFlushbar(),
+                child: flushBar.isDismissible ? _getDismissibleFlushBar(_builder) : _getFlushBar(),
               ),
             );
             return annotatedChild;
@@ -117,9 +111,7 @@ class FlushbarRoute<T> extends OverlayRoute<T> {
         animation: _filterBlurAnimation!,
         builder: (context, child) {
           return BackdropFilter(
-            filter: ImageFilter.blur(
-                sigmaX: _filterBlurAnimation!.value,
-                sigmaY: _filterBlurAnimation!.value),
+            filter: ImageFilter.blur(sigmaX: _filterBlurAnimation!.value, sigmaY: _filterBlurAnimation!.value),
             child: Container(
               constraints: BoxConstraints.expand(),
               color: _filterColorAnimation!.value,
@@ -134,9 +126,7 @@ class FlushbarRoute<T> extends OverlayRoute<T> {
         animation: _filterBlurAnimation!,
         builder: (context, child) {
           return BackdropFilter(
-            filter: ImageFilter.blur(
-                sigmaX: _filterBlurAnimation!.value,
-                sigmaY: _filterBlurAnimation!.value),
+            filter: ImageFilter.blur(sigmaX: _filterBlurAnimation!.value, sigmaY: _filterBlurAnimation!.value),
             child: Container(
               constraints: BoxConstraints.expand(),
               color: Colors.transparent,
@@ -167,13 +157,12 @@ class FlushbarRoute<T> extends OverlayRoute<T> {
   /// This string is a workaround until Dismissible supports a returning item
   String dismissibleKeyGen = '';
 
-  Widget _getDismissibleFlushbar(Widget child) {
+  Widget _getDismissibleFlushBar(Widget child) {
     return Dismissible(
       direction: _getDismissDirection(),
       resizeDuration: null,
       confirmDismiss: (_) {
-        if (currentStatus == FlushbarStatus.IS_APPEARING ||
-            currentStatus == FlushbarStatus.IS_HIDING) {
+        if (currentStatus == FlushBarStatus.isAppearing || currentStatus == FlushBarStatus.isHiding) {
           return Future.value(false);
         }
         return Future.value(true);
@@ -190,15 +179,15 @@ class FlushbarRoute<T> extends OverlayRoute<T> {
           navigator!.removeRoute(this);
         }
       },
-      child: _getFlushbar(),
+      child: _getFlushBar(),
     );
   }
 
   DismissDirection _getDismissDirection() {
-    if (flushbar.dismissDirection == FlushbarDismissDirection.HORIZONTAL) {
+    if (flushBar.dismissDirection == FlushBarDismissDirection.horizontal) {
       return DismissDirection.horizontal;
     } else {
-      if (flushbar.flushbarPosition == FlushbarPosition.TOP) {
+      if (flushBar.flushBarPosition == FlushBarPosition.top) {
         return DismissDirection.up;
       } else {
         return DismissDirection.down;
@@ -206,16 +195,15 @@ class FlushbarRoute<T> extends OverlayRoute<T> {
     }
   }
 
-  Widget _getFlushbar() {
+  Widget _getFlushBar() {
     return Container(
-      margin: flushbar.margin,
+      margin: flushBar.margin,
       child: _builder,
     );
   }
 
   @override
-  bool get finishedWhenPopped =>
-      _controller!.status == AnimationStatus.dismissed;
+  bool get finishedWhenPopped => _controller!.status == AnimationStatus.dismissed;
 
   /// The animation that drives the route's transition and the previous route's
   /// forward transition.
@@ -233,11 +221,10 @@ class FlushbarRoute<T> extends OverlayRoute<T> {
   /// this route from the previous one, and back to the previous route from this
   /// one.
   AnimationController createAnimationController() {
-    assert(!_transitionCompleter.isCompleted,
-        'Cannot reuse a $runtimeType after disposing it.');
-    assert(flushbar.animationDuration >= Duration.zero);
+    assert(!_transitionCompleter.isCompleted, 'Cannot reuse a $runtimeType after disposing it.');
+    assert(flushBar.animationDuration >= Duration.zero);
     return AnimationController(
-      duration: flushbar.animationDuration,
+      duration: flushBar.animationDuration,
       debugLabel: debugLabel,
       vsync: navigator!,
     );
@@ -247,22 +234,21 @@ class FlushbarRoute<T> extends OverlayRoute<T> {
   /// the transition controlled by the animation controller created by
   /// [createAnimationController()].
   Animation<Alignment> createAnimation() {
-    assert(!_transitionCompleter.isCompleted,
-        'Cannot reuse a $runtimeType after disposing it.');
+    assert(!_transitionCompleter.isCompleted, 'Cannot reuse a $runtimeType after disposing it.');
     assert(_controller != null);
     return AlignmentTween(begin: _initialAlignment, end: _endAlignment).animate(
       CurvedAnimation(
         parent: _controller!,
-        curve: flushbar.forwardAnimationCurve,
-        reverseCurve: flushbar.reverseAnimationCurve,
+        curve: flushBar.forwardAnimationCurve,
+        reverseCurve: flushBar.reverseAnimationCurve,
       ),
     );
   }
 
   Animation<double>? createBlurFilterAnimation() {
-    if (flushbar.routeBlur == null) return null;
+    if (flushBar.routeBlur == null) return null;
 
-    return Tween(begin: 0.0, end: flushbar.routeBlur).animate(
+    return Tween(begin: 0.0, end: flushBar.routeBlur).animate(
       CurvedAnimation(
         parent: _controller!,
         curve: Interval(
@@ -275,10 +261,9 @@ class FlushbarRoute<T> extends OverlayRoute<T> {
   }
 
   Animation<Color?>? createColorFilterAnimation() {
-    if (flushbar.routeColor == null) return null;
+    if (flushBar.routeColor == null) return null;
 
-    return ColorTween(begin: Colors.transparent, end: flushbar.routeColor)
-        .animate(
+    return ColorTween(begin: Colors.transparent, end: flushBar.routeColor).animate(
       CurvedAnimation(
         parent: _controller!,
         curve: Interval(
@@ -292,21 +277,28 @@ class FlushbarRoute<T> extends OverlayRoute<T> {
 
   //copy of `routes.dart`
   void _handleStatusChanged(AnimationStatus status) {
+    final onStatusChanged = flushBar.onStatusChanged;
+
     switch (status) {
       case AnimationStatus.completed:
-        currentStatus = FlushbarStatus.SHOWING;
-        if (_onStatusChanged != null) _onStatusChanged!(currentStatus);
+        currentStatus = FlushBarStatus.showing;
+
+        if (onStatusChanged != null) onStatusChanged(currentStatus);
         if (overlayEntries.isNotEmpty) overlayEntries.first.opaque = opaque;
 
         break;
       case AnimationStatus.forward:
-        currentStatus = FlushbarStatus.IS_APPEARING;
-        if (_onStatusChanged != null) _onStatusChanged!(currentStatus);
+        currentStatus = FlushBarStatus.isAppearing;
+
+        if (onStatusChanged != null) onStatusChanged(currentStatus);
+
         break;
       case AnimationStatus.reverse:
-        currentStatus = FlushbarStatus.IS_HIDING;
-        if (_onStatusChanged != null) _onStatusChanged!(currentStatus);
+        currentStatus = FlushBarStatus.isHiding;
+
+        if (onStatusChanged != null) onStatusChanged(currentStatus);
         if (overlayEntries.isNotEmpty) overlayEntries.first.opaque = false;
+
         break;
       case AnimationStatus.dismissed:
         assert(!overlayEntries.first.opaque);
@@ -314,8 +306,9 @@ class FlushbarRoute<T> extends OverlayRoute<T> {
         // the transition and hits the dismissed status. For example, the iOS
         // back gesture drives this animation to the dismissed status before
         // popping the navigator.
-        currentStatus = FlushbarStatus.DISMISSED;
-        if (_onStatusChanged != null) _onStatusChanged!(currentStatus);
+        currentStatus = FlushBarStatus.dismissed;
+
+        if (onStatusChanged != null) onStatusChanged(currentStatus);
 
         if (!isCurrent) {
           navigator!.finalizeRoute(this);
@@ -331,11 +324,9 @@ class FlushbarRoute<T> extends OverlayRoute<T> {
 
   @override
   void install() {
-    assert(!_transitionCompleter.isCompleted,
-        'Cannot install a $runtimeType after disposing it.');
+    assert(!_transitionCompleter.isCompleted, 'Cannot install a $runtimeType after disposing it.');
     _controller = createAnimationController();
-    assert(_controller != null,
-        '$runtimeType.createAnimationController() returned null.');
+    assert(_controller != null, '$runtimeType.createAnimationController() returned null.');
     _filterBlurAnimation = createBlurFilterAnimation();
     _filterColorAnimation = createColorFilterAnimation();
     _animation = createAnimation();
@@ -345,10 +336,8 @@ class FlushbarRoute<T> extends OverlayRoute<T> {
 
   @override
   TickerFuture didPush() {
-    assert(_controller != null,
-        '$runtimeType.didPush called before calling install() or after calling dispose().');
-    assert(!_transitionCompleter.isCompleted,
-        'Cannot reuse a $runtimeType after disposing it.');
+    assert(_controller != null, '$runtimeType.didPush called before calling install() or after calling dispose().');
+    assert(!_transitionCompleter.isCompleted, 'Cannot reuse a $runtimeType after disposing it.');
     _animation!.addStatusListener(_handleStatusChanged);
     _configureTimer();
     super.didPush();
@@ -357,11 +346,9 @@ class FlushbarRoute<T> extends OverlayRoute<T> {
 
   @override
   void didReplace(Route<dynamic>? oldRoute) {
-    assert(_controller != null,
-        '$runtimeType.didReplace called before calling install() or after calling dispose().');
-    assert(!_transitionCompleter.isCompleted,
-        'Cannot reuse a $runtimeType after disposing it.');
-    if (oldRoute is FlushbarRoute) {
+    assert(_controller != null, '$runtimeType.didReplace called before calling install() or after calling dispose().');
+    assert(!_transitionCompleter.isCompleted, 'Cannot reuse a $runtimeType after disposing it.');
+    if (oldRoute is FlushBarRoute) {
       _controller!.value = oldRoute._controller!.value;
     }
     _animation!.addStatusListener(_handleStatusChanged);
@@ -370,10 +357,8 @@ class FlushbarRoute<T> extends OverlayRoute<T> {
 
   @override
   bool didPop(T? result) {
-    assert(_controller != null,
-        '$runtimeType.didPop called before calling install() or after calling dispose().');
-    assert(!_transitionCompleter.isCompleted,
-        'Cannot reuse a $runtimeType after disposing it.');
+    assert(_controller != null, '$runtimeType.didPop called before calling install() or after calling dispose().');
+    assert(!_transitionCompleter.isCompleted, 'Cannot reuse a $runtimeType after disposing it.');
 
     _result = result;
     _cancelTimer();
@@ -392,11 +377,11 @@ class FlushbarRoute<T> extends OverlayRoute<T> {
   }
 
   void _configureTimer() {
-    if (flushbar.duration != null) {
+    if (flushBar.duration != null) {
       if (_timer != null && _timer!.isActive) {
         _timer!.cancel();
       }
-      _timer = Timer(flushbar.duration!, () {
+      _timer = Timer(flushBar.duration!, () {
         if (isCurrent) {
           navigator!.pop();
         } else if (isActive) {
@@ -420,18 +405,17 @@ class FlushbarRoute<T> extends OverlayRoute<T> {
   ///
   /// Subclasses can override this method to restrict the set of routes they
   /// need to coordinate transitions with.
-  bool canTransitionTo(FlushbarRoute<dynamic> nextRoute) => true;
+  bool canTransitionTo(FlushBarRoute<dynamic> nextRoute) => true;
 
   /// Whether this route can perform a transition from the given route.
   ///
   /// Subclasses can override this method to restrict the set of routes they
   /// need to coordinate transitions with.
-  bool canTransitionFrom(FlushbarRoute<dynamic> previousRoute) => true;
+  bool canTransitionFrom(FlushBarRoute<dynamic> previousRoute) => true;
 
   @override
   void dispose() {
-    assert(!_transitionCompleter.isCompleted,
-        'Cannot dispose a $runtimeType twice.');
+    assert(!_transitionCompleter.isCompleted, 'Cannot dispose a $runtimeType twice.');
     _controller?.dispose();
     _transitionCompleter.complete(_result);
     super.dispose();
@@ -444,10 +428,9 @@ class FlushbarRoute<T> extends OverlayRoute<T> {
   String toString() => '$runtimeType(animation: $_controller)';
 }
 
-FlushbarRoute showFlushbar<T>(
-    {required BuildContext context, required Flushbar flushbar}) {
-  return FlushbarRoute<T>(
-    flushbar: flushbar,
-    settings: RouteSettings(name: FLUSHBAR_ROUTE_NAME),
+FlushBarRoute showFlushBar<T>({required BuildContext context, required FlushBar flushBar}) {
+  return FlushBarRoute<T>(
+    flushBar: flushBar,
+    settings: RouteSettings(name: FlushBarRoute.flushBarRouteName),
   );
 }
